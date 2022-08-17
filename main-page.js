@@ -1,7 +1,7 @@
 function createWidget() {
     let widget = new ListWidget();
     widget.backgroundColor = Color.black();
-    widget.addText('hellow');
+    widget.addText('hello!');
     widget.addSpacer();
     return widget;
 }
