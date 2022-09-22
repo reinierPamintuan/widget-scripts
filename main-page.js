@@ -1,29 +1,109 @@
-function createWidget() {
+
+const data = await fetchData();
+
+let mainWidget = createWidget(data);
+Script.setWidget(mainWidget);
+mainWidget.presentMedium();
+Script.complete();
+
+
+
+function createWidget(data) {
     let widget = new ListWidget();
-    const files = FileManager.iCloud();
-    const fileName = "/Transparent_back2.JPG";
-    //const path = files.joinPath(files.documentsDirectory(),fileName)
-    const path = files.documentsDirectory();
-
-
-    const cloudFileName = "/.Transparent_back2.JPG.icloud";
-    if(!files.isFileDownloaded(path+cloudFileName)){
-        files.downloadFileFromiCloud(path+cloudFileName);
+    let currentBatteryLevel = Math.round(Device.batteryLevel()*100);
+    let currentBrightnessLevel = Math.round(Device.screenBrightness()*100);
+    const titleMessage = 'title';
+    const backgroundColor = new Color("#242424");
+    const NAME = "Rei";
+    const CALENDAR_NAME = 'reinier.pamintuan@gmail.com'
+    const FONT_NAME = 'Menlo';
+    const FONT_SIZE = 11;
+    const fontColor = new Font('Menlo', 11)
+    const COLORS = {
+        calendar: '#58D2F0',
+        deviceStats: '#7AE7B9'
     }
+    widget.setPadding(10, 15, 15, 10);
+    widget.font = fontColor;
+    widget.backgroundColor = backgroundColor;
+
+    let widgetStack = widget.addStack();
+    widgetStack.layoutVertically();
+    widgetStack.spacing = 4;
+    widgetStack.size = new Size(320, 0);
     
+    const timeFormat = new DateFormatter();
+    timeFormat.locale = "en";
+    timeFormat.useNoDateStyle();
+    timeFormat.useShortTimeStyle();
     
+    const currentTime = widgetStack.addText(`Last Updated: ${timeFormat.string(new Date())}`);
+    currentTime.textColor = Color.white();
+    currentTime.textOpacity = 0.7;
+    currentTime.font = new Font(FONT_NAME, FONT_SIZE);
     
-    widget.backgroundImage = files.readImage(path+fileName);
-    widget.addText(path);
-    widget.addSpacer();
-    console.log(files.listContents(path));
+    const phoneInfo = widgetStack.addText(`iPhone:~ ${NAME}$ info`);
+    phoneInfo.textColor = Color.white();
+    phoneInfo.font = new Font(FONT_NAME, FONT_SIZE);
+
+
+    const calendarEvents = widgetStack.addText(`📅 | Calendar ${getCalendarEventTitle(data.calendarEvents)}`);
+    calendarEvents.textColor = new Color(COLORS.calendar);
+    calendarEvents.font = new Font(FONT_NAME, FONT_SIZE);
+
+    
+    const deviceStats = widgetStack.addText(`📊 | ⚡ ${currentBatteryLevel}%, ☀ ${currentBrightnessLevel}%`);
+    deviceStats.textColor = new Color(COLORS.deviceStats);
+    deviceStats.font = new Font(FONT_NAME, FONT_SIZE);
+
+
+
     return widget;
 }
 
+async function getCalendarEvent(CALENDAR_NAME){
+    const calendar = await Calendar.forEventsByTitle(CALENDAR_NAME);
+    const events = await CalendarEvent.today([calendar]);
+    const tomorrow = await CalendarEvent.tomorrow([calendar]);
+    console.log(calendar);
+    console.log(events);
+    console.log(tomorrow);
 
-//IMG_6566
+    let eventCountToday = `Got ${events.length} events today`;
+    let eventCountTomorrow = `Got ${tomorrow.length} events tomorrow`;
 
-let mainWidget = createWidget();
-Script.setWidget(mainWidget);
-mainWidget.presentLarge();
-Script.complete();
+    console.log(eventCountToday);
+    console.log(eventCountTomorrow);
+
+    const upcomingEvents = events.concat(tomorrow).filter(e => (new Date(e.endDate)).getTime() >= (new Date()).getTime());
+
+
+    return upcomingEvents ? upcomingEvents[0] : null;
+}
+
+async function getCalendarEventTitle(calendarEvent){
+    const timeFormatter = new DateFormatter();
+    timeFormatter.locale = 'en';
+    timeFormatter.useNoDateStyle();
+    timeFormatter.useShortTimeStyle();
+    
+    console.log('calendarEvent.startDate',calendarEvent.startDate);
+    const eventTime = new Date(calendarEvent.startDate)
+    console.log('eventTime',eventTime);
+
+    return `[${timeFormatter.string(eventTime)}] ${calendarEvent.title}`;
+}
+
+async function fetchData(){
+    
+    let calendarEvents = await getCalendarEvent('reinier.pamintuan@gmail.com');
+
+    return {
+        calendarEvents,
+        device:{
+            battery: Math.round(Device.batteryLevel() * 100),
+            brightness: Math.round(Device.screenBrightness() * 100)
+        }
+    };
+}
+
