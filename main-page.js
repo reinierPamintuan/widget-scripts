@@ -2,7 +2,13 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-purple; icon-glyph: magic;
 
-const data = await fetchData();
+let data = null;
+await fetchData().then((value)=>{ // I dont think this works...
+    // console.log(value);
+    data = value;
+});
+
+const titleMessage = await getCalendarEventTitle(data.calendarEvents).then(value => value);
 
 let mainWidget = createWidget(data);
 Script.setWidget(mainWidget);
@@ -15,7 +21,7 @@ function createWidget(data) {
     let widget = new ListWidget();
     let currentBatteryLevel = Math.round(Device.batteryLevel()*100);
     let currentBrightnessLevel = Math.round(Device.screenBrightness()*100);
-    const titleMessage = 'title';
+    
     const backgroundColor = new Color("#242424");
     const NAME = "Rei";
     const CALENDAR_NAME = 'reinier.pamintuan@gmail.com'
@@ -49,8 +55,8 @@ function createWidget(data) {
     phoneInfo.textColor = Color.white();
     phoneInfo.font = new Font(FONT_NAME, FONT_SIZE);
 
-    // console.log('data.calendarEvents!!!!!!!!',data.calendarEvents);
-    const calendarEvents = widgetStack.addText(`📅 | Calendar ${getCalendarEventTitle(data.calendarEvents)}`);
+
+    const calendarEvents = widgetStack.addText(`📅 | Calendar ${titleMessage}`);
     calendarEvents.textColor = new Color(COLORS.calendar);
     calendarEvents.font = new Font(FONT_NAME, FONT_SIZE);
 
@@ -59,8 +65,6 @@ function createWidget(data) {
     deviceStats.textColor = new Color(COLORS.deviceStats);
     deviceStats.font = new Font(FONT_NAME, FONT_SIZE);
 
-
-
     return widget;
 }
 
@@ -68,25 +72,16 @@ async function getCalendarEvent(CALENDAR_NAME){
     const calendar = await Calendar.forEventsByTitle(CALENDAR_NAME);
     const events = await CalendarEvent.today([calendar]);
     const tomorrow = await CalendarEvent.tomorrow([calendar]);
-    // console.log(calendar);
-    // console.log(events);
 
+    let combinedEvents = [];
     let eventCountToday = `Got ${events.length} events today`;
     let eventCountTomorrow = `Got ${tomorrow.length} events tomorrow`;
 
-    // console.log(eventCountToday);
-    // console.log(eventCountTomorrow);
 
+    let upcomingEvents = events.concat(tomorrow).filter(e => (new Date(e.endDate)).getTime() >= (new Date()).getTime());
     
-    let upcomingEvents = events.concat(tomorrow)//.filter(e => (new Date(e.endDate)).getTime() >= (new Date()).getTime());
-    // console.log(Object.keys(events));
-    // console.log(Object.values(events));
-    // let currentEvents = Object.values(events);
-    // let tomorrowEvents = Object.values(tomorrow);
-    // upcomingEvents = currentEvents.concat(tomorrowEvents);
-    // upcomingEvents.sort()
-    // console.log(Object.keys(upcomingEvents));
-    return('I have returned');//upcomingEvents ? upcomingEvents[0] : null;
+    
+    return upcomingEvents ? upcomingEvents[0] : null;
 }
 
 async function getCalendarEventTitle(calendarEvent){
@@ -94,17 +89,17 @@ async function getCalendarEventTitle(calendarEvent){
     timeFormatter.locale = 'en';
     timeFormatter.useNoDateStyle();
     timeFormatter.useShortTimeStyle();
-    // console.log('calendarEvent',calendarEvent);
     const eventTime = new Date(calendarEvent.startDate)
-    // console.log('eventTime',eventTime);
-
+ 
     return `[${timeFormatter.string(eventTime)}] ${calendarEvent.title}`;
 }
 
 async function fetchData(){
     
+    
     let calendarEvents = await getCalendarEvent('reinier.pamintuan@gmail.com');
-    console.log('calendarEvents',Object.values(calendarEvents));
+
+    
     return {
         calendarEvents,
         device:{
